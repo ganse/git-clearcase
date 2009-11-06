@@ -1,0 +1,338 @@
+#!/usr/bin/perl
+
+# Copyright (C) 2009  Ian Gareth Ganse ian.ganse OverAT gmail.com
+
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation; version 2
+# of the License.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+use warnings;
+use strict;
+
+#################
+# Configurables #
+#################
+
+# Optionally add path to these
+my $git = "git";
+my $ct = "/usr/atria/bin/cleartool";
+my $cp = "/bin/cp -vf";
+
+# path to repo (inside a clearcase view)
+my $clearcase_dir = `$git config --global --get gitcc.ccsource`;
+
+# path to bare repo
+my $repo_dir = `$git config --global --get gitcc.barerepo`;
+
+##################
+# Initialization #
+##################
+
+my $ccview = $ENV{'CLEARCASE_ROOT'};
+
+my @ignore_contents = (
+		"# Git ignore file",
+		"*.o",
+		"*~",
+		".*.swp",
+		"*.orig",
+		"*.rej",
+		"# clearcase cruft",
+		"lost+found",
+		"lost+found/*",
+		"*.contrib",
+		"*.contrib.*",
+		"*.keep",
+		"# NFS cruft",
+		".nfs*",
+		"# Windows visual studio objects",
+		"*.obj",
+		"*.exe",
+		"*.dll",
+		"*.OBJ",
+		"*.EXE",
+		"*.DLL",
+		"# Windows visual studio cruft",
+		"*.map",
+		"*.pdb",
+		"*.exp",
+		"*.lib",
+		"*.idb",
+		"*.rsp",
+		"*.ncb",
+		"*.suo",
+		"BuildLog.htm",
+		"*.MAP",
+		"*.PDB",
+		"*.EXP",
+		"*.LIB",
+		"*.IDB",
+		"*.RSP",
+		"*.NCB",
+		"*.SUO",
+		"BUILDLOG.HTM",
+		"Release/*",
+		"RELEASE/*",
+		"# Repo stuff",
+		"CVS",
+		"SVN",
+		"# Tags stuff",
+		"GPATH",
+		"GRTAGS",
+		"GSYMS",
+		"GTAGS",
+		"ID",
+		"tags",
+		"# Common stuff",
+		"*.zip",
+		"*.doc",
+		"*.iso",
+		"*.jpg",
+		"*.bmp",
+		"*.png",
+		"*.ZIP",
+		"*.DOC",
+		"*.ISO",
+		"*.JPG",
+		"*.BMP",
+		"*.PNG",
+		"build.log");
+
+#####################
+# Utility functions #
+#####################
+
+sub usage {
+	print "\n";
+	print "Usage: gitcc OPERATION [ PARAMETERS ]\n";
+	print "\n";
+	print "Where OPERATION is one of\n";
+	print "initcc   -- initializes a clearcase view into a git source and sets up a bare repo.\n";
+	print "pullcc   -- checks out files in clearcase and fetches from bare repo\n";
+	print "commitcc -- checks in files in clearcase\n";
+	print "help     -- this helpful message.\n";
+	print "\n";
+	print "You need the global config variables gitcc.ccsource set to the path to your project in clearcase, and gitcc.barerepo set to where you want the bare repo created.\n";
+	print "\n";
+	exit(1);
+}
+
+sub ct_op {
+	die("ct_op needs three arguments\n") unless(defined($_[0]) && length($_[0]) && defined($_[1]) && length($_[1]) && defined($_[2]));
+	my $file = $_[0];
+	my $op = $_[1];
+	my $cmt = $_[2];
+	my $bname = $file;
+	$bname =~ s:^.*/::;
+	$cmt = "Updating $bname" unless(length($cmt));
+	$file = "$clearcase_dir/$file" unless($file =~ m/^\//);
+	print "DEBUG: updating with comment '$cmt'\n";
+	die("Could not $op $file\n") if(system("$ct $op -c '$cmt' $file"));
+}
+
+sub checkout {
+	die("checkout() needs a file and a comment.\n") unless(defined($_[0]) && length($_[0]) && defined($_[1]));
+	ct_op($_[0], "co", $_[1]);
+}
+
+sub checkin {
+	die("checkin() needs a file and a comment.\n") unless(defined($_[0]) && length($_[0]) && defined($_[1]));
+	ct_op($_[0], "ci", $_[1]);
+}
+
+#######################
+# Subcommand handlers #
+#######################
+
+sub initcc {
+	die("You need to be in a clearcase view.\n") unless(defined($ccview) && length($ccview));
+	$ccview =~ s:^.*/::;
+
+	die("You already have a git repo in $clearcase_dir\n") if(-d "$clearcase_dir/.git");
+
+	die("You already have a git repo in $repo_dir\n") if(-d "$repo_dir");
+
+	chdir $clearcase_dir;
+
+	open(IGNORE, ">$clearcase_dir/.gitignore") or die("Cannot open ignore file for writing: $!\n");
+	print IGNORE join("\n", @ignore_contents), "\n";
+	close(IGNORE);
+
+	print "Initializing repo...\n";
+	die("Could not initialize git repo.\n") if(system("$git init"));
+
+	print "Adding files...\n";
+	die("Could not add files to git repo.\n") if(system("$git add ."));
+
+	print "Committing files...\n";
+	die("Could not commit files to git repo.\n") if(system("$git commit -a -m 'Initial import of clearcase view $ccview'"));
+
+	print "Tagging...\n";
+	die("Could not tag git repo.\n") if(system("$git tag -a -m 'import_$ccview' 'import_$ccview'"));
+
+	print "Creating bare repo...\n";
+	system("mkdir -p $repo_dir");
+	chdir $repo_dir;
+	die("Cannot create bare repo.\n") if(system("$git --bare init"));
+	chdir $clearcase_dir;
+	die("Cannot add remote.\n") if(system("$git remote add origin $repo_dir"));
+
+	die("Cannot push to bare repo.\n") if(system("$git push origin master"));
+
+	print("Enjoy your bare clone in $repo_dir\n");
+	print("Remember not to work in your master branch.\n");
+
+	exit(0);
+}
+
+sub pullcc {
+
+	my $comment = "";
+
+	if(scalar(@_) == 2) {
+		usage() unless($_[0] eq "-m");
+		$comment = $_[1];
+	}
+
+	die("You need to be in a clearcase view.\n") unless(defined($ccview) && length($ccview));
+	$ccview =~ s:^.*/::;
+
+	chdir $clearcase_dir;
+
+	print ("Fetching...\n");
+	die("Cannot fetch from bare repo\n") if(system("$git fetch origin master"));
+
+	print ("Getting list of changed files...\n");
+# get files changes
+	my @diff_files = `$git diff --name-only FETCH_HEAD`;
+
+	unless(scalar(@diff_files)) {
+		print("Already up to date.\n");
+		exit(0)
+	}
+	chomp(@diff_files);
+	print ("Got ", scalar(@diff_files), " changed files:\n", join("\n", @diff_files), "\n\n");
+
+	map { checkout($_, $comment); } @diff_files;
+
+	die("Cannot merge from bare repo\n") if(system("$git merge FETCH_HEAD"));
+
+# TODO: Extract log comments and use those for clearcase checkin if -m not given
+
+# Go ahead and check in if merge successful
+	map { checkin($_, $comment); } @diff_files;
+
+	exit(0);
+}
+
+sub commitcc {
+	my $comment = "";
+
+	if(scalar(@_) == 2) {
+		usage() unless($_[0] eq "-m");
+		$comment = $_[1];
+	}
+
+	die("You need to be in a clearcase view.\n") unless(defined($ccview) && length($ccview));
+	$ccview =~ s:^.*/::;
+
+	chdir $clearcase_dir;
+
+	my @clearcase_checkouts = `$ct lsco -short -cview -avobs`;
+	die("Nothing to update from clearcase?\n") unless(scalar(@clearcase_checkouts));
+	chomp(@clearcase_checkouts);
+
+# TODO: Check this is correct syntax...
+	die("Cannot complete merge from bare repo\n") if(system("$git commit -a -m 'Merged from origin/master'"));
+
+	map { checkin($_, $comment); } @clearcase_checkouts;
+
+	exit(0);
+}
+
+sub help {
+	usage() unless(defined($_[0]) && length($_[0]));
+
+	my $topic = $_[0];
+	chomp($topic);
+
+	if($topic eq "initcc") {
+		print("\n");
+		print("Usage: gitcc initcc\n");
+		print("\n");
+		print("Initializes a git repo in your clearcase view and creates a bare repo elsewhere.\n");
+		print("Requires the following keys be set up in your global git config:\n");
+		print("gitcc.ccsource -- path to your project (should be inside your clearcase view)\n");
+		print("gitcc.barerepo -- path to where you want the bare repo to be created\n");
+		print("\n");
+		print("After initcc, you may clone from the bare repo and work normally. Keep the clearcase view up to date with gitcc pullcc\n");
+		print("\n");
+		print("See git-config(1) for details on setting up config variables.\n");
+		exit(1);
+	}
+
+	if($topic eq "pullcc") {
+		print("\n");
+		print("Usage: git pullcc [ -m 'Commit message' ]\n");
+		print("\n");
+		print("Used to pull from the bare repo to your clearcase view. Clearcase files will be checked out and merged.\n");
+		print("If the merge is successful the files will be checked back in to clearcase. If not, resolve the merge normally\n");
+		print("and call gitcc commitcc to complete the pull.\n");
+		print("\n");
+		print("If -m is given the argument will be used for the clearcase check in message.\n");
+		print("\n");
+		print("See git-mergetool(1) for details on completing a merge.\n");
+		print("\n");
+		exit(1);
+	}
+
+	if($topic eq "commitcc") {
+		print("\n");
+		print("Usage: gitcc commitcc [ -m 'Commit message' ]\n");
+		print("\n");
+		print("Only used to finish checking in a gitcc pullcc operation. If -m is supplied the argument\n");
+		print("will be used as the git commit message as well as the clearcase check in message.\n");
+		print("\n");
+		exit(1);
+	}
+
+	usage();
+}
+
+###############
+# Entry point #
+###############
+
+chomp($clearcase_dir);
+chomp($repo_dir);
+
+if(!defined($clearcase_dir) || !length($clearcase_dir) ||
+		!defined($repo_dir) || !length($repo_dir)) {
+	print("Please set up clearcase config variables.\n");
+	usage();
+}
+
+usage() unless(defined($ARGV[0]) && length($ARGV[0]));
+
+chomp(@ARGV);
+my $cmd = shift(@ARGV);
+
+initcc(@ARGV) if($cmd eq "initcc");
+pullcc(@ARGV) if($cmd eq "pullcc");
+commitcc(@ARGV) if($cmd eq "commitcc");
+help(@ARGV) if($cmd eq "help");
+
+# If we don't recognize the command hand it to git
+my $execcmd = "$git $cmd " . join(" ", @ARGV);
+exec($execcmd);
+die("Could not exec $git : $!\n");
