@@ -37,11 +37,13 @@ This will commit your merge changes and check the files back into clearcase. It 
 
 When in doubt, use gitcc help [ sometopic ]
 
+I tried to make it adhere to git's interface, so if you decide to hack on it, keep that in mind.
+
 Things left to do:
 
 More testing! I use it, but it could use more testing. If you find a bug, send me an email and be as descriptive as possible. Patches are always more welcome than bug reports. Pointless complaints go directly to /dev/null.
 
-Add support for using the log comments from git as the check in comments for clearcase. Shouldn't be too hard, just haven't gotten to it yet.
+Add support for using the log comments from git as the check in comments for clearcase. Shouldn't be too hard, just haven't gotten to it yet. (Done!)
 
 Enjoy!
 ian.ganse OverAT gmail.com (You know the drill)

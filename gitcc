@@ -213,7 +213,6 @@ sub pullcc {
 	die("Cannot fetch from bare repo\n") if(system("$git fetch origin master"));
 
 	print ("Getting list of changed files...\n");
-# get files changes
 	my @diff_files = `$git diff --name-only FETCH_HEAD`;
 
 	unless(scalar(@diff_files)) {
@@ -225,11 +224,12 @@ sub pullcc {
 
 	map { checkout($_, $comment); } @diff_files;
 
+	my @changelines = `$git log --format='%s' HEAD..FETCH_HEAD`;
+	$comment = join(", ", @changelines) unless(length($comment));
+
 	die("Cannot merge from bare repo\n") if(system("$git merge FETCH_HEAD"));
 
-# TODO: Extract log comments and use those for clearcase checkin if -m not given
-
-# Go ahead and check in if merge successful
+	# Go ahead and check in to clearcase if merge successful
 	map { checkin($_, $comment); } @diff_files;
 
 	exit(0);
@@ -252,8 +252,10 @@ sub commitcc {
 	die("Nothing to update from clearcase?\n") unless(scalar(@clearcase_checkouts));
 	chomp(@clearcase_checkouts);
 
-# TODO: Check this is correct syntax...
 	die("Cannot complete merge from bare repo\n") if(system("$git commit -a -m 'Merged from origin/master'"));
+
+	my @changelines = `$git log --format='%s' HEAD..FETCH_HEAD`;
+	$comment = join(", ", @changelines) unless(length($comment));
 
 	map { checkin($_, $comment); } @clearcase_checkouts;
 
