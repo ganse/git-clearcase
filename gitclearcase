@@ -29,10 +29,10 @@ my $ct = "/usr/atria/bin/cleartool";
 my $cp = "/bin/cp -vf";
 
 # path to repo (inside a clearcase view)
-my $clearcase_dir = `$git config --global --get gitcc.ccsource`;
+my $clearcase_dir = `$git config --global --get gitclearcase.ccsource`;
 
 # path to bare repo
-my $repo_dir = `$git config --global --get gitcc.barerepo`;
+my $repo_dir = `$git config --global --get gitclearcase.barerepo`;
 
 ##################
 # Initialization #
@@ -114,7 +114,7 @@ my @ignore_contents = (
 
 sub usage {
 	print "\n";
-	print "Usage: gitcc OPERATION [ PARAMETERS ]\n";
+	print "Usage: gitclearcase OPERATION [ PARAMETERS ]\n";
 	print "\n";
 	print "Where OPERATION is one of\n";
 	print "initcc   -- initializes a clearcase view into a git source and sets up a bare repo.\n";
@@ -122,7 +122,7 @@ sub usage {
 	print "commitcc -- checks in files in clearcase\n";
 	print "help     -- this helpful message.\n";
 	print "\n";
-	print "You need the global config variables gitcc.ccsource set to the path to your project in clearcase, and gitcc.barerepo set to where you want the bare repo created.\n";
+	print "You need the global config variables gitclearcase.ccsource set to the path to your project in clearcase, and gitclearcase.barerepo set to where you want the bare repo created.\n";
 	print "\n";
 	exit(1);
 }
@@ -270,14 +270,14 @@ sub help {
 
 	if($topic eq "initcc") {
 		print("\n");
-		print("Usage: gitcc initcc\n");
+		print("Usage: gitclearcase initcc\n");
 		print("\n");
 		print("Initializes a git repo in your clearcase view and creates a bare repo elsewhere.\n");
 		print("Requires the following keys be set up in your global git config:\n");
-		print("gitcc.ccsource -- path to your project (should be inside your clearcase view)\n");
-		print("gitcc.barerepo -- path to where you want the bare repo to be created\n");
+		print("gitclearcase.ccsource -- path to your project (should be inside your clearcase view)\n");
+		print("gitclearcase.barerepo -- path to where you want the bare repo to be created\n");
 		print("\n");
-		print("After initcc, you may clone from the bare repo and work normally. Keep the clearcase view up to date with gitcc pullcc\n");
+		print("After initcc, you may clone from the bare repo and work normally. Keep the clearcase view up to date with gitclearcase pullcc\n");
 		print("\n");
 		print("See git-config(1) for details on setting up config variables.\n");
 		exit(1);
@@ -289,7 +289,7 @@ sub help {
 		print("\n");
 		print("Used to pull from the bare repo to your clearcase view. Clearcase files will be checked out and merged.\n");
 		print("If the merge is successful the files will be checked back in to clearcase. If not, resolve the merge normally\n");
-		print("and call gitcc commitcc to complete the pull.\n");
+		print("and call gitclearcase commitcc to complete the pull.\n");
 		print("\n");
 		print("If -m is given the argument will be used for the clearcase check in message.\n");
 		print("\n");
@@ -300,9 +300,9 @@ sub help {
 
 	if($topic eq "commitcc") {
 		print("\n");
-		print("Usage: gitcc commitcc [ -m 'Commit message' ]\n");
+		print("Usage: gitclearcase commitcc [ -m 'Commit message' ]\n");
 		print("\n");
-		print("Only used to finish checking in a gitcc pullcc operation. If -m is supplied the argument\n");
+		print("Only used to finish checking in a gitclearcase pullcc operation. If -m is supplied the argument\n");
 		print("will be used as the git commit message as well as the clearcase check in message.\n");
 		print("\n");
 		exit(1);

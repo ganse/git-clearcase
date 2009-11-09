@@ -6,18 +6,18 @@ This program will take some of the pain of working with clearcase out of your li
 
 It's not a good bridge to clearcase, but it will work with one view. It won't import history from clearcase, either, so don't expect that. It's really designed for the coder who has to share a dynamic view with others and wants to manage merges with git instead of clearcase's abysmal merge tool.
 
-You will need to create two global git variables: gitcc.ccsource and gitcc.barerepo -- these allow the script to find your clearcase project and your master repo.
+You will need to create two global git variables: gitclearcase.ccsource and gitclearcase.barerepo -- these allow the script to find your clearcase project and your master repo.
 
 Here's an example:
 
-git config --global --add gitcc.ccsource /vobs/path/to/my/project
-git config --global --add gitcc.barerepo /home/me/my_project.git
+git config --global --add gitclearcase.ccsource /vobs/path/to/my/project
+git config --global --add gitclearcase.barerepo /home/me/my_project.git
 
 You can put the bare repo anywhere, like /tmp, but be mindful it needs to exist for the life of your view.
 
 Once you've set the variables, change directory to your clearcase project and initialize the project:
 
-gitcc initcc
+gitclearcase initcc
 
 This creates a git repo in your clearcase vob, creates the bare repo, and pushes the git data to the bare repo. You may now clone the bare repo and work as normal, pushing your changes back to the bare repo.
 
@@ -25,17 +25,17 @@ Keep an eye on your git repo in your clearcase view, someone might change files 
 
 When you're ready to sync back to clearcase, use the following command:
 
-gitcc pullcc
+gitclearcase pullcc
 
 This will fetch changes from the bare repo, check out the changed files in clearcase, and attempt to merge them. If everything merged ok, it will check them back into clearcase. If you do not supply a commit message via -m it defaults to "Updated file" where file is the source file basename.
 
 If pullcc detects a merge is needed, resolve the merge as you usually would. Either edit the file directly or use your favorite git mergetool. After you've resolve the merge conflict, call the following:
 
-gitcc commitcc
+gitclearcase commitcc
 
 This will commit your merge changes and check the files back into clearcase. It is only necessary if you had to resolve a merge conflict.
 
-When in doubt, use gitcc help [ sometopic ]
+When in doubt, use gitclearcase help [ sometopic ]
 
 I tried to make it adhere to git's interface, so if you decide to hack on it, keep that in mind.
 
@@ -44,6 +44,10 @@ Things left to do:
 More testing! I use it, but it could use more testing. If you find a bug, send me an email and be as descriptive as possible. Patches are always more welcome than bug reports. Pointless complaints go directly to /dev/null.
 
 Add support for using the log comments from git as the check in comments for clearcase. Shouldn't be too hard, just haven't gotten to it yet. (Done!)
+
+I changed the name from gitcc to gitclearcase to avoid conflict with Charles O'Farrel's git-cc, which is probably superior to this one, but I don't grok python. I barely grok perl. His implementation seems to deal with history, where mine is just a workflow for a view.
+
+You can find git-cc at http://github.com/charleso/git-cc
 
 Enjoy!
 ian.ganse OverAT gmail.com (You know the drill)
