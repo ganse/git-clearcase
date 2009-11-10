@@ -136,7 +136,6 @@ sub ct_op {
 	$bname =~ s:^.*/::;
 	$cmt = "Updating $bname" unless(length($cmt));
 	$file = "$clearcase_dir/$file" unless($file =~ m/^\//);
-	print "DEBUG: updating with comment '$cmt'\n";
 	die("Could not $op $file\n") if(system("$ct $op -c '$cmt' $file"));
 }
 
