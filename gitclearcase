@@ -186,7 +186,7 @@ sub initcc {
 	chdir $clearcase_dir;
 	die("Cannot add remote.\n") if(system("$git remote add origin $repo_dir"));
 
-	die("Cannot push to bare repo.\n") if(system("$git push origin master"));
+	die("Cannot push to bare repo.\n") if(system("$git push --tags origin master"));
 
 	print("Enjoy your bare clone in $repo_dir\n");
 	print("Remember not to work in your master branch.\n");
