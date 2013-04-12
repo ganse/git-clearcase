@@ -35,7 +35,7 @@ my $clearcase_dir = `$git config --global --get gitclearcase.ccsource`;
 my $repo_dir = `$git config --global --get gitclearcase.barerepo`;
 
 ##################
-# Initialization #
+# Initialization ###test ok
 ##################
 
 my $ccview = $ENV{'CLEARCASE_ROOT'};
